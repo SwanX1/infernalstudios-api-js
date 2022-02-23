@@ -1,0 +1,59 @@
+{
+  "name": "infernalstudios.org-api",
+  "description": "infernalstudios.org-api is a library for the infernalstudios.org API",
+  "version": "1.0.0",
+  "main": "./dist/index.js",
+  "typings": "./dist/index.d.ts",
+  "esnext": "./src/index.ts",
+  "exports": "./dist/index.js",
+  "private": false,
+  "bugs": "https://github.com/SwanX1/infernalstudios-api-js/issues",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/SwanX1/infernalstudios-api-js.git"
+  },
+  "license": "ARR",
+  "author": {
+    "name": "Kārlis Čerņavskis",
+    "email": "contact@cernavskis.dev",
+    "url": "https://cernavskis.dev"
+  },
+  "keywords": [
+    "infernalstudios",
+    "infernalstudios.org",
+    "api",
+    "api-wrapper"
+  ],
+  "scripts": {
+    "build": "npm run build:only",
+    "build:only": "tsc",
+    "build:noemit": "tsc --noEmit",
+    "build:watch": "tsc -w",
+    "check": "npm run build:noemit && npm run prebuild",
+    "docs": "typedoc --excludePrivate --name \"@infernalstudios/api Documentation\" --logLevel Verbose src/index.ts",
+    "format": "prettier --config .prettierrc.json --write src *.json .*.json",
+    "format:check": "prettier --config .prettierrc.json --check src *.json .*.json",
+    "lint": "eslint src",
+    "lint:fix": "eslint src --fix",
+    "prebuild": "npm run format:check && npm run lint",
+    "prepare": "husky install"
+  },
+  "dependencies": {
+    "axios": "^0.26.0"
+  },
+  "devDependencies": {
+    "@types/node": "^16.11.22",
+    "@typescript-eslint/eslint-plugin": "^4.33.0",
+    "@typescript-eslint/parser": "^4.33.0",
+    "eslint": "^7.32.0",
+    "husky": "^7.0.4",
+    "prettier": "^2.5.1",
+    "prettier-package-json": "^2.6.0",
+    "prettier-plugin-organize-imports": "^2.3.4",
+    "typedoc": "^0.22.11",
+    "typescript": "~4.5.0"
+  },
+  "engines": {
+    "node": "^16"
+  }
+}
