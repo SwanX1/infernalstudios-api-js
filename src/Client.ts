@@ -2,7 +2,7 @@ import { ModManager, RedirectManager, TokenManager, UserManager } from './Resour
 import { Token } from './Token';
 
 export class Client {
-  private static readonly BASE_URL = 'https://infernalstudios.org/api';
+  public static BASE_URL = 'https://infernalstudios.org/api';
 
   public mods: ModManager = new ModManager(this, Client.BASE_URL + '/mods', () => this.token);
   public redirects: RedirectManager = new RedirectManager(this, Client.BASE_URL + '/redirects', () => this.token);
