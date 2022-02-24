@@ -213,7 +213,7 @@ export class UserManager extends BaseManager {
   }
 
   public async getSelf(): Promise<User> {
-    const response = await axios.get<UserSchema>(this.baseUrl, this.config);
+    const response = await axios.get<UserSchema>(`${this.baseUrl}/self`, this.config);
     return new User(response.data, this.client);
   }
 
@@ -223,7 +223,7 @@ export class UserManager extends BaseManager {
     }> = {}
   ): Promise<User> {
     const response = await axios.put<UserSchema>(
-      this.baseUrl,
+      `${this.baseUrl}/self`,
       {
         password: data.password,
       },
