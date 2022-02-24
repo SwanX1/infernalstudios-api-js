@@ -143,7 +143,7 @@ export class RedirectManager extends BaseManager {
 
 export class TokenManager extends BaseManager {
   public async createLoginToken(username: string, password: string): Promise<Token> {
-    const response = await axios.post<TokenSchema>(`${this.baseUrl}/login`, { username, password }, this.config);
+    const response = await axios.post<TokenSchema>(`${this.baseUrl}/login`, { username, password });
     return new Token(response.data, this.client);
   }
 
