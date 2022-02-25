@@ -220,12 +220,14 @@ export class UserManager extends BaseManager {
   public async updateSelf(
     data: Partial<{
       password: string;
+      passwordChangeRequested: boolean;
     }> = {}
   ): Promise<User> {
     const response = await axios.put<UserSchema>(
       `${this.baseUrl}/self`,
       {
         password: data.password,
+        passwordChangeRequested: data.passwordChangeRequested,
       },
       this.config
     );
