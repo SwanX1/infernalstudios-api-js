@@ -170,7 +170,7 @@ export class TokenManager extends BaseManager {
     if (token instanceof Token) {
       token = token.id;
     }
-    await axios.delete(`${this.baseUrl}/token`, this.config);
+    await axios.delete(`${this.baseUrl}/token/${token}`, this.config);
   }
 }
 
