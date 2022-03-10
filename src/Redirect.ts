@@ -1,10 +1,10 @@
 import { Client } from './Client';
 
 export class Redirect {
-  private id: string;
-  private name: string;
-  private url: string;
-  private path: string;
+  public id: string;
+  public name: string;
+  public url: string;
+  public path: string;
   private database: Client;
 
   constructor(redirect: RedirectSchema, database: Client) {
