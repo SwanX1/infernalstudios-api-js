@@ -40,6 +40,11 @@ export class ModManager extends BaseManager {
     return new Mod(response.data, this.client);
   }
 
+  public async getAll(): Promise<Mod[]> {
+    const response = await axios.get<ModSchema[]>(this.baseUrl, this.config);
+    return response.data.map(mod => new Mod(mod, this.client));
+  }
+
   public async create(id: string, name: string, url: string): Promise<Mod> {
     const response = await axios.post<ModSchema>(
       this.baseUrl,
