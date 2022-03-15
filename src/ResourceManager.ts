@@ -47,19 +47,42 @@ export class BaseManager {
     options: http.RequestOptions,
     callback: (res: http.IncomingMessage) => void
   ) => http.ClientRequest {
-    return this.baseUrl.startsWith('https') ? https.request : http.request;
+    const url = new URL(this.baseUrl);
+    switch (url.protocol) {
+      case 'http:':
+        return http.request;
+      case 'https:':
+        return https.request;
+      default:
+        throw new Error(`Unsupported protocol '${url.protocol}'`);
+    }
   }
 
   private _agent?: http.Agent;
   private get agent(): http.Agent {
     if (typeof this._agent === 'undefined') {
-      this._agent = new http.Agent({
+      const opts: http.AgentOptions = {
         keepAlive: true,
         keepAliveMsecs: 60000,
         maxSockets: Infinity,
         maxFreeSockets: 256,
-      });
+      };
+      const url = new URL(this.baseUrl);
+      switch (url.protocol) {
+        case 'http:':
+          this._agent = new http.Agent(opts);
+          break;
+        case 'https:':
+          this._agent = new https.Agent({
+            ...opts,
+            maxCachedSessions: 256,
+          });
+          break;
+        default:
+          throw new Error(`Unsupported protocol '${url.protocol}'`);
+      }
     }
+
     return this._agent;
   }
 
@@ -71,6 +94,7 @@ export class BaseManager {
       requestOptions.agent = this.agent;
       requestOptions.path = url.pathname + url.search;
       requestOptions.hostname = url.hostname;
+      requestOptions.protocol = url.protocol;
       if (url.port) {
         requestOptions.port = Number(url.port);
       }
@@ -94,6 +118,7 @@ export class BaseManager {
       requestOptions.headers['User-Agent'] = `NodeJS ${process.version} (${JSON.stringify(
         PACKAGE_NAME
       )} ${PACKAGE_VERSION})`;
+
       const request = this.requestMethod(requestOptions, res => {
         const data: Buffer[] = [];
         res.on('data', chunk => {
@@ -112,7 +137,11 @@ export class BaseManager {
           if (data.length === 0) {
             parsed = undefined;
           } else {
-            parsed = JSON.parse(data.toString());
+            try {
+              parsed = JSON.parse(Buffer.concat(data).toString());
+            } catch (e) {
+              reject(new RequestError(['SERVER_ERROR'], 500));
+            }
           }
 
           endFunction({
@@ -414,7 +443,7 @@ export class TokenManager extends BaseManager {
     }
     const response = await this.request<{ valid: boolean }>({
       method: 'GET',
-      path: 'login',
+      path: 'token',
       usesToken: false,
       headers: { Authorization: `Bearer ${token}` },
     });
