@@ -1,3 +1,10 @@
+import { readFileSync } from 'fs';
+import { join as pathJoin } from 'path';
+
+const packageJSON = JSON.parse(readFileSync(pathJoin(__dirname, '../package.json')).toString());
+export const PACKAGE_NAME: string = packageJSON.name ?? 'unknown';
+export const PACKAGE_VERSION: string = packageJSON.version ?? 'unknown';
+
 export const RequestErrorCodes: Record<string, string> = {
   INSUFFICIENT_PERMISSIONS: 'Insuficient permissions',
   INVALID_BODY: 'Invalid body',

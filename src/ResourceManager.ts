@@ -6,7 +6,7 @@ import { Mod, ModSchema } from './Mod';
 import { Redirect, RedirectSchema } from './Redirect';
 import { Token, TokenSchema } from './Token';
 import { User, UserSchema } from './User';
-import { copyProps, handlePossibleError, RequestError, Response } from './Util';
+import { copyProps, handlePossibleError, PACKAGE_NAME, PACKAGE_VERSION, RequestError, Response } from './Util';
 import { Version, VersionSchema } from './Version';
 
 interface RequestConfig<Method extends 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET' | 'POST' | 'PUT' | 'DELETE'> {
@@ -50,11 +50,30 @@ export class BaseManager {
     return this.baseUrl.startsWith('https') ? https.request : http.request;
   }
 
+  private _agent?: http.Agent;
+  private get agent(): http.Agent {
+    if (typeof this._agent === 'undefined') {
+      this._agent = new http.Agent({
+        keepAlive: true,
+        keepAliveMsecs: 60000,
+        maxSockets: Infinity,
+        maxFreeSockets: 256,
+      });
+    }
+    return this._agent;
+  }
+
   protected request<T>(options: RequestConfig): Promise<Response<T>> {
     return new Promise((resolve, reject) => {
       options.usesToken = options.usesToken ?? true;
       const requestOptions: http.RequestOptions = {};
-      requestOptions.path = `${this.baseUrl}/${options.path}`;
+      const url = new URL(`${this.baseUrl}/${options.path}`);
+      requestOptions.agent = this.agent;
+      requestOptions.path = url.pathname + url.search;
+      requestOptions.hostname = url.hostname;
+      if (url.port) {
+        requestOptions.port = Number(url.port);
+      }
       requestOptions.method = options.method;
       if (options.headers) {
         requestOptions.headers = options.headers;
@@ -72,6 +91,9 @@ export class BaseManager {
       }
       requestOptions.headers['Accept'] = 'application/json';
       requestOptions.headers['Accept-Encoding'] = 'gzip';
+      requestOptions.headers['User-Agent'] = `NodeJS ${process.version} (${JSON.stringify(
+        PACKAGE_NAME
+      )} ${PACKAGE_VERSION})`;
       const request = this.requestMethod(requestOptions, res => {
         const data: Buffer[] = [];
         res.on('data', chunk => {
