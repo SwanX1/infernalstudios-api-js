@@ -135,42 +135,106 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-    if: success() && github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [ build, format, lint ]
+    if: success() && github.event_name == 'push' && github.ref == 'refs/heads/stable'
+    needs: [build, format, lint]
     steps:
       - name: Use NodeJS v16
         uses: actions/setup-node@v2
         with:
-          node-version: '16'
-      - name: Generate and publish documentation
+          node-version: "16"
+
+      - name: Setup
+        id: setup
+        run: |
+          echo "Generating temporary directories..."
+          gitdir=`mktemp -d`
+          moddir=`mktemp -d`
+          docsdir=`mktemp -d`
+
+          echo "::group::Cloning repository to $gitdir"
+          git clone "https://github.com/$GITHUB_REPOSITORY.git" "$gitdir" --depth=1 --progress --branch=stable --single-branch --verbose
+          echo "::endgroup::"
+
+          echo "::group::Cloning repository to $docsdir"
+          git clone "https://github.com/$GITHUB_REPOSITORY.git" "$docsdir" --depth=1 --progress --branch=docs --single-branch --verbose
+          echo "::endgroup::"
+
+          echo "::group::Setting up cloned repositories"
+          cd "$gitdir"
+          git config advice.detachedHead false
+          if ! git checkout --force "$GITHUB_SHA"; then
+            echo "::error::Failed to checkout $GITHUB_SHA"
+            exit 1
+          fi
+          cd "$docsdir"
+          if ! git checkout --force "origin/docs"; then
+            echo "::error::Failed to checkout origin/docs"
+            exit 1
+          fi
+          rm -rfv "$docsdir/.git" "$docsdir/README"
+          echo "::endgroup::"
+          echo ""
+          echo "::set-output name=gitdir::$gitdir"
+          echo "::set-output name=moddir::$moddir"
+          echo "::set-output name=docsdir::$docsdir"
+      - name: Generate
         env:
           DIRECTORY: "./docs"
         run: |
-          gitdir=`mktemp -d`
-          moddir=`mktemp -d`
-          git clone "https://github.com/$GITHUB_REPOSITORY.git" "$gitdir" --depth=1 --progress --single-branch --verbose
+          gitdir="${{ steps.setup.outputs.gitdir }}"
+          moddir="${{ steps.setup.outputs.moddir }}"
+          docsdir="${{ steps.setup.outputs.docsdir }}"
           cd "$gitdir"
-          git config advice.detachedHead false
-          git checkout --force "$GITHUB_SHA"
-          npm ci --verbose
-          npm run docs
+          echo "::group::Installing dependencies"
+          yarn
+          echo "::endgroup::"
+          echo "::group::Generating documentation"
+          yarn docs
+          echo "::endgroup::"
+          echo "::group::Copying documentation to temporary directory"
           mv -vf "$gitdir/$DIRECTORY"/* $moddir
-          cd "$moddir"
-          git init
-          git remote add origin "https://$GITHUB_ACTOR:${{ secrets.GITHUB_TOKEN }}@github.com/$GITHUB_REPOSITORY.git"
-          echo "This is an automated branch. Please do not commit to or change any files in it." >> README
-          git add . -v
-          git config --local user.name "github-actions[bot]"
-          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git branch -m docs
-          git commit --verbose -m "
-          $GITHUB_SHA
-          
+          echo "::endgroup::"
+      - name: Publish
+        run: |
+          gitdir="${{ steps.setup.outputs.gitdir }}"
+          moddir="${{ steps.setup.outputs.moddir }}"
+          docsdir="${{ steps.setup.outputs.docsdir }}"
+          gitmessage="$GITHUB_SHA
           This is an automated commit by a GitHub workflow.
           It contains generated documentation from the main branch of this repository.
-          Action: https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID
-          "
-          git push origin docs --force --verbose
+          Action: https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          moddirhash=`find "$moddir" -type f | xargs sha512sum | cut -d ' ' -f 1`
+          docsdirhash=`find "$docsdir" -type f | xargs sha512sum | cut -d ' ' -f 1`
+          if [[ "$moddirhash" != "$docsdirhash" ]]; then
+            echo "Documentation changed, publishing..."
+            cd "$moddir"
+            echo "::group::Preparing commit"
+            git init
+            git remote add origin "https://$GITHUB_ACTOR:${{ secrets.GITHUB_TOKEN }}@github.com/$GITHUB_REPOSITORY.git"
+            echo "This is an automated branch. Please do not commit to or change any files in it." >> README
+            git add . -v
+            git config --local user.name "github-actions[bot]"
+            git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git branch -m docs
+            echo "::endgroup::"
+            echo "::group::Committing changes"
+            git commit --verbose -m "$gitmessage"
+            echo "::endgroup::"
+            echo "::group::Pushing changes"
+            git push origin docs --force --verbose
+            echo "::endgroup::"
+          else
+            echo "Documentation hasn't changed, skipping publish."
+          fi
+      - name: Cleanup
+        run: |
+          gitdir="${{ steps.setup.outputs.gitdir }}"
+          moddir="${{ steps.setup.outputs.moddir }}"
+          docsdir="${{ steps.setup.outputs.docsdir }}"
           cd ~
+          echo "Removing $gitdir"
           rm -rf "$gitdir"
+          echo "Removing $moddir"
           rm -rf "$moddir"
+          echo "Removing $docsdir"
+          rm -rfv "$docsdir"

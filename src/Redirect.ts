@@ -5,18 +5,18 @@ export class Redirect {
   public name: string;
   public url: string;
   public path: string;
-  private database: Client;
+  private client: Client;
 
-  constructor(redirect: RedirectSchema, database: Client) {
+  constructor(redirect: RedirectSchema, client: Client) {
     this.id = redirect.id;
     this.name = redirect.name;
     this.url = redirect.url;
     this.path = redirect.path;
-    this.database = database;
+    this.client = client;
   }
 
   public async update(data: Partial<Omit<RedirectSchema, 'id'>>): Promise<this> {
-    const response = await this.database.redirects.update(this.id, data);
+    const response = await this.client.redirects.update(this.id, data);
     this.name = response.name;
     this.url = response.url;
     this.path = response.path;
@@ -24,7 +24,7 @@ export class Redirect {
   }
 
   public async delete(): Promise<void> {
-    return await this.database.redirects.delete(this.id);
+    return await this.client.redirects.delete(this.id);
   }
 
   public toJSON(): RedirectSchema {

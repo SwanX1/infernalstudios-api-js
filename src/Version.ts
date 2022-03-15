@@ -11,9 +11,9 @@ export class Version {
   public loader: string;
   public dependencies: VersionDependency[];
   public client: Client;
-  private mod: string;
+  public mod: string;
 
-  constructor(version: VersionSchema, mod: string, database: Client) {
+  constructor(version: VersionSchema, mod: string, client: Client) {
     this.id = version.id;
     this.name = version.name;
     this.url = version.url;
@@ -22,12 +22,16 @@ export class Version {
     this.changelog = version.changelog;
     this.loader = version.loader;
     this.dependencies = version.dependencies;
-    this.client = database;
+    this.client = client;
     this.mod = mod;
   }
 
   public async getMod(): Promise<Mod> {
-    return this.client.mods.get(this.mod);
+    const mod = await this.client.mods.get(this.mod);
+    if (!mod) {
+      throw new Error(`Assertion error: Mod ${this.mod} not found`);
+    }
+    return mod;
   }
 
   public async delete(): Promise<void> {
