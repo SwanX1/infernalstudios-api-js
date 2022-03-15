@@ -272,7 +272,7 @@ export class ModManager extends BaseManager {
   }
 
   public async getVersions(mod: string): Promise<Version[]> {
-    if (!this.cache.has('version/' + mod)) {
+    if (!this.cache.has('versions/' + mod)) {
       const response = await this.request<VersionSchema[]>({
         method: 'GET',
         path: `${mod}/versions`,
